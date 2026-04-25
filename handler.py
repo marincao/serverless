@@ -7,7 +7,7 @@ import base64
 import io
 
 # Load model once (important)
-model = models.resnet18(pretrained=True)
+model = models.resnet18(weights=None)
 model.eval()
 
 transform = transforms.Compose([
