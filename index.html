@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crystal Microscopy Grader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 36px;
+    }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3348;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Config ── */
+    .config-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    label { font-size: 0.8rem; color: #94a3b8; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    input[type="text"], input[type="password"] {
+      background: #0f1117;
+      border: 1px solid #2d3348;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      padding: 10px 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #60a5fa; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed #2d3348;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #60a5fa;
+      background: rgba(96,165,250,.05);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .drop-text { color: #64748b; font-size: 0.9rem; }
+    .drop-text span { color: #60a5fa; font-weight: 600; }
+
+    /* ── Preview ── */
+    #preview-wrap { margin-top: 20px; display: none; }
+    #preview {
+      width: 100%; border-radius: 10px;
+      max-height: 280px; object-fit: contain;
+      border: 1px solid #2d3348;
+      background: #0f1117;
+    }
+    #filename {
+      margin-top: 8px; font-size: 0.8rem; color: #64748b; text-align: center;
+    }
+
+    /* ── Button ── */
+    button {
+      width: 100%; margin-top: 20px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 1rem; font-weight: 600;
+      padding: 14px; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    button:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: none; width: 22px; height: 22px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result card ── */
+    #result-card {
+      display: none;
+      background: #1e2130;
+      border: 1px solid #2d3348;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: 100%; max-width: 560px;
+    }
+
+    .result-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .prediction-badge {
+      font-size: 1.6rem; font-weight: 800;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .confidence-pill {
+      background: #0f1117; border: 1px solid #2d3348;
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 0.85rem; color: #94a3b8;
+    }
+    .confidence-pill span { color: #34d399; font-weight: 700; }
+
+    /* ── Score bars ── */
+    .scores { display: flex; flex-direction: column; gap: 10px; }
+    .score-row { display: flex; align-items: center; gap: 10px; }
+    .score-label { width: 68px; font-size: 0.8rem; color: #94a3b8; flex-shrink: 0; }
+    .bar-track {
+      flex: 1; height: 10px; background: #0f1117;
+      border-radius: 99px; overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+    .bar-fill.active { background: linear-gradient(90deg, #34d399, #10b981); }
+    .score-pct {
+      width: 42px; text-align: right;
+      font-size: 0.82rem; font-weight: 600; color: #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .meta { margin-top: 18px; font-size: 0.78rem; color: #475569; text-align: right; }
+
+    /* ── Error ── */
+    .error-box {
+      display: none; margin-top: 16px;
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+      border-radius: 10px; padding: 14px 18px;
+      color: #fca5a5; font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Crystal Microscopy Grader</h1>
+  <p class="subtitle">Upload a microscopy image to classify its grain level</p>
+
+  <!-- Config card -->
+  <div class="card">
+    <div class="config-row">
+      <label>RunPod Endpoint ID</label>
+      <input type="text" id="endpoint-id" placeholder="e.g. abc123xyz" />
+    </div>
+    <div class="config-row">
+      <label>RunPod API Key</label>
+      <input type="password" id="api-key" placeholder="Your RunPod API key" />
+    </div>
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="drop-icon">🔬</div>
+      <div class="drop-text">
+        Drag & drop an image here, or <span>browse</span>
+      </div>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview" alt="preview" />
+      <div id="filename"></div>
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <button id="predict-btn" disabled>
+      <span id="btn-text">Select an image to predict</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+  </div>
+
+  <!-- Result card -->
+  <div id="result-card">
+    <div class="result-header">
+      <div class="prediction-badge" id="result-label">—</div>
+      <div class="confidence-pill">Confidence <span id="result-conf">—</span></div>
+    </div>
+    <div class="scores" id="scores-container"></div>
+    <div class="meta" id="result-meta"></div>
+  </div>
+
+<script>
+  const LABEL_NAMES = ["level_4","level_5","level_6","level_7","level_8"];
+
+  const dropZone    = document.getElementById("drop-zone");
+  const fileInput   = document.getElementById("file-input");
+  const previewWrap = document.getElementById("preview-wrap");
+  const preview     = document.getElementById("preview");
+  const filename    = document.getElementById("filename");
+  const predictBtn  = document.getElementById("predict-btn");
+  const btnText     = document.getElementById("btn-text");
+  const spinner     = document.getElementById("spinner");
+  const errorBox    = document.getElementById("error-box");
+  const resultCard  = document.getElementById("result-card");
+
+  let selectedFile = null;
+
+  // ── Drag & drop styling ──
+  dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) loadFile(file);
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  function loadFile(file) {
+    selectedFile = file;
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    filename.textContent = file.name;
+    previewWrap.style.display = "block";
+    predictBtn.disabled = false;
+    btnText.textContent = "Predict Grade";
+    hideError();
+    resultCard.style.display = "none";
+  }
+
+  // ── Predict ──
+  predictBtn.addEventListener("click", async () => {
+    const endpointId = document.getElementById("endpoint-id").value.trim();
+    const apiKey     = document.getElementById("api-key").value.trim();
+
+    if (!endpointId || !apiKey) { showError("Please enter your RunPod Endpoint ID and API Key."); return; }
+    if (!selectedFile)          { showError("Please select an image."); return; }
+
+    setLoading(true);
+    hideError();
+    resultCard.style.display = "none";
+
+    try {
+      // Convert image to base64
+      const b64 = await fileToBase64(selectedFile);
+
+      const url = `https://api.runpod.ai/v2/${endpointId}/runsync`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ input: { image: b64 } }),
+      });
+
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`RunPod API error ${resp.status}: ${txt}`);
+      }
+
+      const data = await resp.json();
+
+      // RunPod wraps output in data.output for runsync
+      const output = data.output ?? data;
+
+      if (output.error) throw new Error(output.error);
+
+      renderResult(output);
+
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  // ── Render result ──
+  function renderResult(output) {
+    document.getElementById("result-label").textContent =
+      output.prediction.replace("_", " ").toUpperCase();
+    document.getElementById("result-conf").textContent =
+      (output.confidence * 100).toFixed(1) + "%";
+
+    const container = document.getElementById("scores-container");
+    container.innerHTML = "";
+
+    LABEL_NAMES.forEach(name => {
+      const prob    = output.scores[name] ?? 0;
+      const isTop   = name === output.prediction;
+      const pct     = (prob * 100).toFixed(1);
+
+      const row = document.createElement("div");
+      row.className = "score-row";
+      row.innerHTML = `
+        <div class="score-label">${name.replace("_"," ")}</div>
+        <div class="bar-track">
+          <div class="bar-fill ${isTop ? "active" : ""}"
+               style="width: ${pct}%"></div>
+        </div>
+        <div class="score-pct">${pct}%</div>
+      `;
+      container.appendChild(row);
+    });
+
+    if (output.inference_time_ms != null) {
+      document.getElementById("result-meta").textContent =
+        `Inference time: ${output.inference_time_ms} ms`;
+    }
+
+    resultCard.style.display = "block";
+  }
+
+  // ── Helpers ──
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result); // includes data URI prefix; handler strips it
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setLoading(on) {
+    predictBtn.disabled = on;
+    btnText.style.display = on ? "none" : "inline";
+    spinner.style.display = on ? "block" : "none";
+  }
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = "block";
+  }
+
+  function hideError() {
+    errorBox.style.display = "none";
+  }
+</script>
+</body>
+</html>
