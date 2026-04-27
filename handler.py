@@ -103,10 +103,11 @@ def predict_pil(img: Image.Image) -> dict:
             cur   = img.resize((int(cw * scale), int(ch * scale)), Image.BILINEAR)
             cw, ch = cur.size
 
-        def extract(im):
-            for y in range(0, ch - ps + 1, stride):
-                for x in range(0, cw - ps + 1, stride):
-                    crop = im.crop((x, y, x + ps, y + ps))
+        # Fix: pass loop variables as default args to avoid closure capture bug
+        def extract(im, _ps=ps, _cw=cw, _ch=ch, _stride=stride):
+            for y in range(0, _ch - _ps + 1, _stride):
+                for x in range(0, _cw - _ps + 1, _stride):
+                    crop = im.crop((x, y, x + _ps, y + _ps))
                     all_patches.append(
                         VAL_TF(crop.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR))
                     )
