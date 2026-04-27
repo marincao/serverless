@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crystal Microscopy Grader</title>
+  <title>金相测试</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -181,16 +181,16 @@
 <body>
 
   <h1>Crystal Microscopy Grader</h1>
-  <p class="subtitle">Upload a microscopy image to classify its grain level</p>
+  <p class="subtitle">上传图片，等待服务器运行</p>
 
   <!-- Config card -->
   <div class="card">
     <div class="config-row">
-      <label>RunPod Endpoint ID</label>
+      <label>Endpoint ID</label>
       <input type="text" id="endpoint-id" placeholder="e.g. abc123xyz" />
     </div>
     <div class="config-row">
-      <label>RunPod API Key</label>
+      <label>API Key</label>
       <input type="password" id="api-key" placeholder="Your RunPod API key" />
     </div>
 
@@ -211,7 +211,7 @@
     <div class="error-box" id="error-box"></div>
 
     <button id="predict-btn" disabled>
-      <span id="btn-text">Select an image to predict</span>
+      <span id="btn-text">上传图片</span>
       <div class="spinner" id="spinner"></div>
     </button>
   </div>
